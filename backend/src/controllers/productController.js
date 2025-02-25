@@ -88,20 +88,40 @@ export const getProducts = async (req, res) => {
  */
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate(
-      'category seller',
-      'name email'
-    );
+    console.log('🔍 Fetching product with ID:', req.params.id);
+
+    // ✅ Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log('❌ Invalid product ID:', req.params.id);
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid product ID' });
+    }
+
+    // ✅ Fetch product from the database
+    const product = await Product.findById(req.params.id)
+      .populate({
+        path: 'seller',
+        select: 'name email sellerProfile',
+        populate: {
+          path: 'sellerProfile', // Ensures the sellerProfile is fully populated
+          select: 'businessName phone', // Select only needed fields
+        },
+      })
+      .populate('category', 'name');
 
     if (!product) {
+      console.log('⚠️ Product not found:', req.params.id);
       return res
         .status(404)
         .json({ success: false, message: 'Product not found' });
     }
 
+    console.log('✅ Product found:', product);
     res.json({ success: true, product });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ Error fetching product:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

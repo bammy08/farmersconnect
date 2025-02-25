@@ -8,13 +8,24 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  bulkPricing: { minQuantity: number; price: number }[];
+  bulkPricing: {
+    _id: number;
+    minQuantity: number;
+    price: number;
+  }[];
   quantity: number;
   category: string;
   state: string;
   lga: string;
   images: string[];
-  seller?: { _id: string; name?: string; email?: string } | string;
+  seller?:
+    | {
+        sellerProfile: string | boolean | undefined;
+        _id: string;
+        name?: string;
+        email?: string;
+      }
+    | string;
   createdAt: string;
 }
 
@@ -61,15 +72,11 @@ export const fetchProducts = createAsyncThunk(
 
 // Fetch a single product by ID
 export const fetchProductById = createAsyncThunk(
-  'products/fetchProductById',
-  async (productId: string, { rejectWithValue }) => {
-    try {
-      return await productService.getProductById(productId);
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch product'
-      );
-    }
+  'products/fetchById',
+  async (id: string) => {
+    const response = await productService.getProductById(id);
+    console.log('🎯 Redux API Response:', response);
+    return response.product; // Ensure correct field
   }
 );
 
