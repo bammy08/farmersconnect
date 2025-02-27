@@ -3,6 +3,7 @@ import authReducer, { loadUserFromStorage } from './slices/authSlice';
 import categoryReducer from './slices/categorySlice';
 import productReducer from './slices/productSlice';
 import sellerReducer from './slices/sellerSlice';
+import searchReducer from './slices/searchSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     category: categoryReducer,
     products: productReducer,
     seller: sellerReducer,
+    search: searchReducer,
   },
 });
 

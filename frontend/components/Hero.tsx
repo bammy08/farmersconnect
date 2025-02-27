@@ -1,24 +1,39 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, MapPin } from 'lucide-react';
-import Select, { components } from 'react-select';
+import Select, { SingleValue, components } from 'react-select';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+
+type LocationOption = {
+  label: string;
+  value: string;
+};
 
 export default function Hero() {
+  const router = useRouter();
+
   const [search, setSearch] = useState('');
-  const [location, setLocation] = useState({
+  const [location, setLocation] = useState<LocationOption>({
     label: 'All Nigeria',
     value: 'all',
   });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Search:', search, 'Location:', location);
+
+    // Construct the query params
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('query', search.trim());
+    if (location.value !== 'all') params.set('location', location.value);
+
+    // Navigate to the search page
+    router.push(`/search?${params.toString()}`);
   };
 
-  // Custom SingleValue to display MapPin on the left inside the select
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Custom SingleValue to display MapPin icon inside the select
   const SingleValue = (props: any) => (
     <components.SingleValue {...props}>
       <div className="flex items-center gap-2">
@@ -65,9 +80,12 @@ export default function Hero() {
                   { label: 'Lagos', value: 'lagos' },
                   { label: 'Abuja', value: 'abuja' },
                   { label: 'Port Harcourt', value: 'ph' },
+                  { label: 'Ibadan', value: 'ib' },
                 ]}
                 value={location}
-                onChange={(val) => setLocation(val!)}
+                onChange={(val: SingleValue<LocationOption>) =>
+                  val && setLocation(val)
+                }
                 className="react-select-container"
                 classNamePrefix="react-select"
                 placeholder="Select location"
@@ -89,8 +107,11 @@ export default function Hero() {
                     borderRadius: '8px',
                     marginTop: '4px',
                     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                    zIndex: 9999, // Ensure it's above other elements
                   }),
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }), // Ensure visibility
                 }}
+                menuPortalTarget={document.body} // Fix for dropdown clipping
               />
             </div>
 
@@ -119,7 +140,7 @@ export default function Hero() {
 
         {/* Popular Searches */}
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <span className="text-sm text-white/80">Popular:</span>
+          <span className="text-sm text-white/80 mt-2">Popular:</span>
           {[
             'Organic Vegetables',
             'Fresh Fish',

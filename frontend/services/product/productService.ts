@@ -29,7 +29,7 @@ export const productService = {
   async getProductById(productId: string) {
     try {
       const response = await axios.get(`${API_URL}/products/${productId}`);
-      console.log('📦 API Response:', response.data); // Debugging
+
       return response.data;
     } catch (error) {
       console.error('❌ Error fetching product:', error);

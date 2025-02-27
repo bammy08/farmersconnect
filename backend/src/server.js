@@ -8,6 +8,7 @@ import sellerRoutes from './routes/sellerRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -25,6 +26,7 @@ app.use('/api/sellers', sellerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/search', searchRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
