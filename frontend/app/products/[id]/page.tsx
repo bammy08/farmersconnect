@@ -16,6 +16,7 @@ import {
   Mail,
   ArrowRight,
 } from 'lucide-react';
+import SellerInteractionTabs from '@/components/products/SellerInteractionTabs';
 
 // TypeScript interfaces
 interface BulkPricing {
@@ -131,106 +132,7 @@ const ProductDetail = () => {
             </div>
             <hr />
 
-            <div className="mt-10 p-2 rounded-lg">
-              <div className="border-b border-gray-200">
-                <nav className="flex gap-4 bg-white">
-                  <button
-                    onClick={() => setActiveTab('comment')}
-                    className={`py-2 px-4 border-b-2 font-medium flex items-center gap-2 ${
-                      activeTab === 'comment'
-                        ? 'border-green-500 bg-green-400 text-white'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <MessageSquareText className="h-5 w-5" />
-                    Leave Comment
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('call')}
-                    className={`py-2 px-4 border-b-2 font-medium flex items-center gap-2 ${
-                      activeTab === 'call'
-                        ? 'border-green-500 bg-green-400 text-white'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <Phone className="h-5 w-5" />
-                    Call Seller
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('chat')}
-                    className={`py-2 px-4 border-b-2 font-medium flex items-center gap-2 ${
-                      activeTab === 'chat'
-                        ? 'border-green-500 bg-green-400 text-white'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                    Chat
-                  </button>
-                </nav>
-              </div>
-
-              <div className="pt-4">
-                {activeTab === 'comment' && (
-                  <div className="space-y-4">
-                    <textarea
-                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      rows={4}
-                      placeholder="Write your comment about the product..."
-                    />
-                    <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
-                      <MessageSquareText className="h-5 w-5" />
-                      Post Comment
-                    </button>
-                  </div>
-                )}
-
-                {activeTab === 'call' &&
-                  product.seller &&
-                  typeof product.seller === 'object' &&
-                  'sellerProfile' in product.seller &&
-                  product.seller.sellerProfile &&
-                  typeof product.seller.sellerProfile === 'object' && (
-                    <div className="space-y-2">
-                      <p className="text-gray-700 flex items-center gap-2">
-                        <Phone className="h-5 w-5 text-green-600" />
-                        Seller&apos;s Phone Number:{' '}
-                        {(product.seller.sellerProfile as SellerProfile).phone}
-                      </p>
-                      <a
-                        href={`tel:${
-                          (product.seller.sellerProfile as SellerProfile).phone
-                        }`}
-                        className="inline-flex items-center bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors gap-2"
-                      >
-                        <Phone className="h-5 w-5" />
-                        Call Now
-                      </a>
-                    </div>
-                  )}
-
-                {activeTab === 'chat' && (
-                  <div className="space-y-4">
-                    <textarea
-                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      rows={3}
-                      placeholder="Type your message to the seller..."
-                    />
-                    <div className="flex justify-between items-center">
-                      <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
-                        <MessageCircle className="h-5 w-5" />
-                        Send Message
-                      </button>
-                      <span className="text-sm text-gray-500">
-                        Typically replies within 24 hours
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <SellerInteractionTabs product={product} />
           </div>
 
           {/* Product Details */}

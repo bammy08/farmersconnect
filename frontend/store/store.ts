@@ -4,6 +4,10 @@ import categoryReducer from './slices/categorySlice';
 import productReducer from './slices/productSlice';
 import sellerReducer from './slices/sellerSlice';
 import searchReducer from './slices/searchSlice';
+import resetReducer from './slices/resetSlice';
+import chatReducer from './slices/chatSlice';
+import notificationReducer from './slices/notificationSlice';
+import commentReducer from './slices/commentSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +16,10 @@ export const store = configureStore({
     products: productReducer,
     seller: sellerReducer,
     search: searchReducer,
+    reset: resetReducer,
+    chat: chatReducer,
+    notification: notificationReducer,
+    comments: commentReducer,
   },
 });
 

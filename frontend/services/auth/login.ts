@@ -40,6 +40,7 @@ export const loginUser = async (
           email: user.email,
           role: user.role,
           isVerified: user.isVerified,
+          _id: '',
         },
       })
     );

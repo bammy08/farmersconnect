@@ -2,7 +2,10 @@ import User from '../models/User.js';
 import SellerProfile from '../models/SellerProfile.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { sendVerificationEmail } from '../utils/sendEmail.js';
+import {
+  sendResetPasswordEmail,
+  sendVerificationEmail,
+} from '../utils/sendEmail.js';
 
 // 📌 Register User
 export const registerUser = async (req, res) => {
@@ -176,5 +179,59 @@ export const loginUser = async (req, res) => {
   } catch (error) {
     console.error('Login Error:', error);
     res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+// 📌 Forgot Password (Send Reset Link)
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  console.log('🔹 Forgot Password Request Received:', email);
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      console.log('❌ User not found:', email);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // 🔥 Generate Reset Token
+    console.log('✅ User Found:', user._id);
+    console.log('✅ User Found:', user._id);
+    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
+
+    // 📧 Send Email
+    const emailSent = await sendResetPasswordEmail(email, resetToken);
+    if (!emailSent) {
+      console.log('❌ Error sending reset email');
+      return res.status(500).json({ message: 'Error sending reset email' });
+    }
+    console.log('📧 Reset Email Sent Successfully');
+    res.json({ message: 'Password reset email sent' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+// 📌 Reset Password
+export const resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Invalid or expired token' });
+    }
+
+    // 🔐 Hash New Password
+    user.password = await bcrypt.hash(password, 10);
+    await user.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    res.status(400).json({ message: 'Invalid or expired token' });
   }
 };

@@ -114,7 +114,7 @@ export default function LoginForm() {
           {/* Forgot Password */}
           <div className="text-right">
             <Link
-              href="/forgot-password"
+              href="/forgot"
               className="text-sm text-slate-600 hover:text-gray-600 transition-colors"
             >
               Forgot Password?
