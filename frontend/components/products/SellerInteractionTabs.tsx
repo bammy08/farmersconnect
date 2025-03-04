@@ -59,13 +59,11 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
   const [replyText, setReplyText] = useState('');
   const [token, setToken] = useState<string | null>(null);
 
-  // ✅ Get token once on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     setToken(storedToken);
   }, []);
 
-  // ✅ Fetch comments only when product ID changes
   useEffect(() => {
     if (product._id) {
       dispatch(fetchComments(product._id));
@@ -77,6 +75,7 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
       console.error('Error: userId is missing!');
       return;
     }
+
     console.log('Sending comment data:', {
       productId: product._id,
       userId,
@@ -148,7 +147,6 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
       <div className="pt-4">
         {activeTab === 'comment' && (
           <div className="space-y-4">
-            {/* Comment Input */}
             <textarea
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
               rows={4}
@@ -165,117 +163,121 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
             </button>
 
             {/* Comments List */}
-            <div className="mt-6">
+            <div key={comments.length} className="mt-6">
               <h3 className="text-lg font-semibold">Comments</h3>
-              {comments.map((comment) => (
-                <div
-                  key={comment._id}
-                  className="p-3 border rounded-lg bg-gray-100 space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold">
-                      {comment.userId?.name || 'Anonymous'}
-                    </p>
-                    <span className="text-xs text-gray-500">
-                      {new Date(comment.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <p>{comment.content}</p>
-                  {comment.userId?._id === userId && (
-                    <div className="flex gap-2">
-                      {editingComment?.id === comment._id ? (
-                        <div className="mt-2">
-                          <textarea
-                            className="w-full p-2 border rounded"
-                            rows={2}
-                            value={editingComment.text}
-                            onChange={(e) =>
+              {comments.map((comment, index) => {
+                console.log('Comment ID:', comment._id);
+                return (
+                  <div
+                    key={comment._id || `comment-${index}`}
+                    className="p-3 border rounded-lg bg-gray-100 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold">
+                        {comment.userId?.name ||
+                          (comment.userId?._id === userId
+                            ? 'You'
+                            : 'Anonymous')}
+                      </p>
+
+                      <span className="text-xs text-gray-500">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p>{comment.content}</p>
+
+                    {comment.userId?._id === userId && (
+                      <div className="flex gap-2">
+                        {editingComment?.id === comment._id ? (
+                          editingComment ? ( // ✅ Ensure editingComment is not null before rendering
+                            <div>
+                              <textarea
+                                className="w-full p-2 border rounded"
+                                rows={2}
+                                value={editingComment.text}
+                                onChange={(e) =>
+                                  setEditingComment({
+                                    id: comment._id,
+                                    text: e.target.value,
+                                  })
+                                }
+                              />
+                              <div className="flex gap-2 mt-2">
+                                <button
+                                  onClick={() => handleEditComment(comment._id)}
+                                  className="bg-blue-500 text-white px-4 py-1 rounded"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => setEditingComment(null)}
+                                  className="bg-gray-400 text-white px-4 py-1 rounded"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : null
+                        ) : (
+                          <button
+                            onClick={() =>
                               setEditingComment({
                                 id: comment._id,
-                                text: e.target.value,
+                                text: comment.content,
                               })
                             }
-                          />
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => handleEditComment(comment._id)}
-                              className="bg-blue-500 text-white px-4 py-1 rounded"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingComment(null)}
-                              className="bg-gray-400 text-white px-4 py-1 rounded"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
+                          >
+                            <Pencil />
+                          </button>
+                        )}
+
                         <button
-                          onClick={() =>
-                            setEditingComment({
-                              id: comment._id,
-                              text: comment.content,
-                            })
-                          }
+                          onClick={() => handleDeleteComment(comment._id)}
                         >
-                          <Pencil />
+                          <Trash />
                         </button>
-                      )}
+                      </div>
+                    )}
+                    <button onClick={() => setReplyingTo({ id: comment._id })}>
+                      Reply
+                    </button>
 
-                      <button onClick={() => handleDeleteComment(comment._id)}>
-                        <Trash />
-                      </button>
-                    </div>
-                  )}
-                  <button onClick={() => setReplyingTo({ id: comment._id })}>
-                    Reply
-                  </button>
-
-                  {/* Reply Input */}
-                  {replyingTo?.id === comment._id && (
-                    <div className="mt-2 ml-4">
-                      <textarea
-                        className="w-full p-2 border rounded"
-                        rows={2}
-                        placeholder="Write a reply..."
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                      />
-                      <button
-                        onClick={() => handlePostComment(comment._id)}
-                        className="mt-1 bg-blue-500 text-white px-4 py-1 rounded"
-                      >
-                        Reply
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Display Replies */}
-                  {comment.replies && comment.replies.length > 0 && (
-                    <div className="mt-2 pl-4 border-l border-gray-300">
-                      <h4 className="text-sm font-semibold">Replies</h4>
-                      {comment.replies.map((reply) => (
-                        <div
-                          key={reply._id}
-                          className="p-2 border rounded-lg bg-gray-50 mt-2"
+                    {/* Reply Input */}
+                    {replyingTo?.id === comment._id && (
+                      <div className="mt-2 ml-4">
+                        <textarea
+                          className="w-full p-2 border rounded"
+                          rows={2}
+                          placeholder="Write a reply..."
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                        />
+                        <button
+                          onClick={() => handlePostComment(comment._id)}
+                          className="mt-1 bg-blue-500 text-white px-4 py-1 rounded"
                         >
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold">
-                              {reply.userId?.name || 'Anonymous'}
-                            </p>
-                            <span className="text-xs text-gray-500">
-                              {new Date(reply.createdAt).toLocaleString()}
-                            </span>
+                          Reply
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Display Replies */}
+                    {comment.replies && comment.replies.length > 0 && (
+                      <div className="mt-2 pl-4 border-l border-gray-300">
+                        <h4 className="text-sm font-semibold">Replies</h4>
+                        {comment.replies.map((reply, i) => (
+                          <div
+                            key={reply._id || `reply-${i}`}
+                            className="p-2 border rounded-lg bg-gray-50 mt-2"
+                          >
+                            <p>{reply.content}</p>
                           </div>
-                          <p>{reply.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

@@ -24,7 +24,11 @@ export const commentService = {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
-    return res.data;
+    return {
+      ...res.data,
+      userId: res.data.userId || { _id: userId, name: 'You' }, // Fix Anonymous issue
+      createdAt: res.data.createdAt || new Date().toISOString(), // Fix Invalid Date
+    };
   },
 
   /** Edit an existing comment */
@@ -41,7 +45,7 @@ export const commentService = {
 
   /** Delete a comment (also removes replies if it's a parent comment) */
   async deleteComment(commentId: string, token: string) {
-    const res = await axios.delete(`${API_URL}/comments/delete/${commentId}`, {
+    const res = await axios.delete(`${API_URL}/comments/${commentId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return res.data;
