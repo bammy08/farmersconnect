@@ -5,7 +5,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // Define Comment Interface
 interface Comment {
   _id: string;
-  content: string; // Fix: Use `content` instead of `text` if your API uses this field
+  content: string;
   userId: {
     _id: string;
     name?: string;
@@ -50,13 +50,14 @@ export const postComment = createAsyncThunk<
     productId: string;
     content: string;
     token: string;
+    userId: string; // ✅ Added userId
     parentCommentId?: string;
   },
   { rejectValue: string }
 >(
   'comments/postComment',
   async (
-    { productId, content, token, parentCommentId },
+    { productId, content, token, userId, parentCommentId },
     { rejectWithValue }
   ) => {
     try {
@@ -64,6 +65,7 @@ export const postComment = createAsyncThunk<
         productId,
         content,
         token,
+        userId, // ✅ Ensure userId is included
         parentCommentId
       );
     } catch (error: any) {
@@ -123,6 +125,7 @@ const commentSlice = createSlice({
       })
       .addCase(fetchComments.fulfilled, (state, action) => {
         state.loading = false;
+        console.log('Fetched Comments:', action.payload);
         state.comments = action.payload;
       })
       .addCase(fetchComments.rejected, (state, action) => {
@@ -138,10 +141,8 @@ const commentSlice = createSlice({
             (c) => c._id === action.payload.parentCommentId
           );
           if (parentComment) {
-            parentComment.replies = [
-              ...(parentComment.replies || []),
-              action.payload,
-            ];
+            parentComment.replies = parentComment.replies || []; // ✅ Ensure it's always an array
+            parentComment.replies.push(action.payload);
           }
         } else {
           // If it's a top-level comment, add it to the list

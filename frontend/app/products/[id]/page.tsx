@@ -70,6 +70,7 @@ const ProductDetail = () => {
   const { product, loading, error } = useSelector(
     (state: RootState) => state.products
   );
+  const user = useSelector((state: RootState) => state.auth.user);
 
   useEffect(() => {
     if (productId) {
@@ -132,7 +133,7 @@ const ProductDetail = () => {
             </div>
             <hr />
 
-            <SellerInteractionTabs product={product} />
+            <SellerInteractionTabs product={product} userId={user?.id || ''} />
           </div>
 
           {/* Product Details */}

@@ -14,11 +14,12 @@ export const commentService = {
     productId: string,
     content: string,
     token: string,
+    userId: string,
     parentCommentId?: string // Optional for replies
   ) {
     const res = await axios.post(
       `${API_URL}/comments`,
-      { productId, content, parentCommentId },
+      { productId, content, parentCommentId, userId },
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -29,7 +30,7 @@ export const commentService = {
   /** Edit an existing comment */
   async editComment(commentId: string, content: string, token: string) {
     const res = await axios.put(
-      `${API_URL}/comments/edit/${commentId}`,
+      `${API_URL}/comments/${commentId}`,
       { content },
       {
         headers: { Authorization: `Bearer ${token}` },

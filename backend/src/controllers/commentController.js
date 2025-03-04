@@ -2,24 +2,28 @@ import Comment from '../models/Comment.js';
 
 /** @desc Add a new comment or reply */
 export const addComment = async (req, res) => {
-  const { productId, content, parentCommentId } = req.body; // ✅ Read from body
-  if (!productId || !content) {
-    return res
-      .status(400)
-      .json({ message: 'Product ID and content are required' });
-  }
-
   try {
-    const comment = await Comment.create({
+    const { productId, userId, content, parentCommentId } = req.body;
+
+    if (!productId || !userId || !content) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const newComment = new Comment({
       productId,
       userId: req.user._id,
       content,
-      parentComment: parentCommentId || null,
+      parentCommentId: parentCommentId || null, // Default to null if not provided
     });
 
-    res.status(201).json(comment);
+    await newComment.save();
+
+    res.status(201).json({ message: 'Comment added successfully', newComment });
   } catch (error) {
-    res.status(500).json({ message: 'Error adding comment', error });
+    console.error('Error adding comment:', error);
+    res
+      .status(500)
+      .json({ message: 'Error adding comment', error: error.message });
   }
 };
 
@@ -78,19 +82,27 @@ export const getComments = async (req, res) => {
   try {
     const { productId } = req.params;
 
+    // Fetch top-level comments (parentCommentId is null)
     const comments = await Comment.find({ productId, parentCommentId: null })
-      .populate({ path: 'userId', select: 'name' }) // ✅ Populate user name
-      .sort({ createdAt: -1 })
+      .populate('userId', 'name')
+      .sort({ createdAt: -1 }) // Show newest comments first
       .lean();
 
-    for (let comment of comments) {
-      comment.replies = await Comment.find({ parentCommentId: comment._id })
-        .populate({ path: 'userId', select: 'name' })
-        .lean();
-    }
+    // Fetch replies for each comment
+    const commentsWithReplies = await Promise.all(
+      comments.map(async (comment) => {
+        const replies = await Comment.find({ parentCommentId: comment._id })
+          .populate('userId', 'name')
+          .sort({ createdAt: 1 }) // Show oldest replies first
+          .lean();
+        console.log(`Replies for comment ${comment._id}:`, replies);
+        return { ...comment, replies };
+      })
+    );
 
-    res.status(200).json(comments);
+    res.status(200).json(commentsWithReplies);
   } catch (error) {
+    console.error('Error fetching comments:', error);
     res.status(500).json({ error: 'Error fetching comments' });
   }
 };
