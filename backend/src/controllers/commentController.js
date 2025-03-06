@@ -1,29 +1,69 @@
 import Comment from '../models/Comment.js';
+import Product from '../models/Product.js';
+import Notification from '../models/Notification.js'; // Ensure Notification model is imported
 
 /** @desc Add a new comment or reply */
 export const addComment = async (req, res) => {
   try {
-    const { productId, userId, content, parentCommentId } = req.body;
+    const { productId, content, parentCommentId } = req.body;
+    const userId = req.user._id;
+    const io = req.io; // ✅ Get io from request object
 
-    if (!productId || !userId || !content) {
+    if (!productId || !content) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
     const newComment = new Comment({
       productId,
-      userId: req.user._id,
+      userId,
       content,
-      parentCommentId: parentCommentId || null, // Default to null if not provided
+      parentCommentId: parentCommentId || null,
     });
 
     await newComment.save();
 
-    res.status(201).json({ message: 'Comment added successfully', newComment });
+    let recipientUserId = null;
+    let message = '';
+
+    if (parentCommentId) {
+      const parentComment = await Comment.findById(parentCommentId);
+      if (parentComment) {
+        recipientUserId = parentComment.userId;
+        message = `Someone replied to your comment: "${content}"`;
+      }
+    } else {
+      const product = await Product.findById(productId);
+      if (product) {
+        recipientUserId = product.seller;
+        message = `New comment on your product: "${content}"`;
+      }
+    }
+
+    if (recipientUserId && recipientUserId.toString() !== userId.toString()) {
+      const notification = new Notification({
+        recipient: recipientUserId,
+        message,
+        type: 'comment',
+      });
+
+      await notification.save();
+
+      // ✅ Emit real-time notification using `req.io`
+      const recipientSocket = req.io.onlineUsers.get(
+        recipientUserId.toString()
+      );
+      if (recipientSocket) {
+        io.to(recipientSocket).emit('newNotification', {
+          message: notification.message,
+          type: 'comment',
+        });
+      }
+    }
+
+    res.status(201).json(newComment);
   } catch (error) {
     console.error('Error adding comment:', error);
-    res
-      .status(500)
-      .json({ message: 'Error adding comment', error: error.message });
+    res.status(500).json({ message: 'Error adding comment' });
   }
 };
 
@@ -32,15 +72,15 @@ export const editComment = async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     const comment = await Comment.findById(id);
-    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
 
-    if (comment.userId.toString() !== userId) {
+    if (comment.userId.toString() !== userId.toString()) {
       return res
         .status(403)
-        .json({ error: 'Unauthorized to edit this comment' });
+        .json({ message: 'Unauthorized to edit this comment' });
     }
 
     comment.content = content;
@@ -49,7 +89,8 @@ export const editComment = async (req, res) => {
 
     res.status(200).json(comment);
   } catch (error) {
-    res.status(500).json({ error: 'Error editing comment' });
+    console.error('Error editing comment:', error);
+    res.status(500).json({ message: 'Error editing comment' });
   }
 };
 
@@ -57,15 +98,15 @@ export const editComment = async (req, res) => {
 export const deleteComment = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     const comment = await Comment.findById(id);
-    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
 
-    if (comment.userId.toString() !== userId) {
+    if (comment.userId.toString() !== userId.toString()) {
       return res
         .status(403)
-        .json({ error: 'Unauthorized to delete this comment' });
+        .json({ message: 'Unauthorized to delete this comment' });
     }
 
     await Comment.findByIdAndDelete(id);
@@ -73,7 +114,8 @@ export const deleteComment = async (req, res) => {
 
     res.status(200).json({ message: 'Comment deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Error deleting comment' });
+    console.error('Error deleting comment:', error);
+    res.status(500).json({ message: 'Error deleting comment' });
   }
 };
 
@@ -95,7 +137,6 @@ export const getComments = async (req, res) => {
           .populate('userId', 'name')
           .sort({ createdAt: 1 }) // Show oldest replies first
           .lean();
-        console.log(`Replies for comment ${comment._id}:`, replies);
         return { ...comment, replies };
       })
     );
@@ -103,6 +144,6 @@ export const getComments = async (req, res) => {
     res.status(200).json(commentsWithReplies);
   } catch (error) {
     console.error('Error fetching comments:', error);
-    res.status(500).json({ error: 'Error fetching comments' });
+    res.status(500).json({ message: 'Error fetching comments' });
   }
 };

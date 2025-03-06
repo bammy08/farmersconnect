@@ -1,52 +1,87 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { notificationService } from '@/services/notification/notificationService';
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
-type Notification = {
-  id: string;
-  userId: string;
+interface Notification {
+  _id: string;
   message: string;
-  isRead: boolean;
+  type: string;
+  seen: boolean;
   createdAt: string;
-};
+}
 
-interface NotificationState {
+interface NotificationsState {
   notifications: Notification[];
   loading: boolean;
   error: string | null;
 }
 
-const initialState: NotificationState = {
+const initialState: NotificationsState = {
   notifications: [],
   loading: false,
   error: null,
 };
 
-export const fetchNotifications = createAsyncThunk(
-  'notification/fetchNotifications',
-  async (token: string, { rejectWithValue }) => {
+// Async Thunks
+export const fetchNotifications = createAsyncThunk<
+  Notification[],
+  string,
+  { rejectValue: string }
+>('notifications/fetchNotifications', async (token, { rejectWithValue }) => {
+  try {
+    return await notificationService.fetchNotifications(token);
+  } catch (error: any) {
+    return rejectWithValue(
+      error.response?.data?.message || 'Failed to fetch notifications'
+    );
+  }
+});
+
+export const markAllAsSeen = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: string }
+>('notifications/markAllAsSeen', async (token, { rejectWithValue }) => {
+  try {
+    await notificationService.markAllAsSeen(token);
+  } catch (error: any) {
+    return rejectWithValue(
+      error.response?.data?.message || 'Failed to mark all as seen'
+    );
+  }
+});
+
+export const markAsRead = createAsyncThunk<
+  string,
+  { notificationId: string; token: string },
+  { rejectValue: string }
+>(
+  'notifications/markAsRead',
+  async ({ notificationId, token }, { rejectWithValue }) => {
     try {
-      return await notificationService.fetchNotifications(token);
+      await notificationService.markAsRead(notificationId, token);
+      return notificationId;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data || 'Failed to fetch notifications'
+        error.response?.data?.message || 'Failed to mark notification as read'
       );
     }
   }
 );
 
-const notificationSlice = createSlice({
+export const notificationsSlice = createSlice({
   name: 'notification',
   initialState,
   reducers: {
-    addNotification: (state, action: { payload: Notification }) => {
-      state.notifications.unshift(action.payload);
+    addNotification: (state, action: PayloadAction<Notification>) => {
+      state.notifications.unshift(action.payload); // Add new notification at the top
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchNotifications.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
         state.loading = false;
@@ -54,10 +89,22 @@ const notificationSlice = createSlice({
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.payload || 'Failed to fetch notifications';
+      })
+      .addCase(markAllAsSeen.fulfilled, (state) => {
+        state.notifications = state.notifications.map((n) => ({
+          ...n,
+          isRead: true,
+        }));
+      })
+      .addCase(markAsRead.fulfilled, (state, action) => {
+        state.notifications = state.notifications.map((n) =>
+          n._id === action.payload ? { ...n, isRead: true } : n
+        );
       });
   },
 });
 
-export const { addNotification } = notificationSlice.actions;
-export default notificationSlice.reducer;
+export const { addNotification } = notificationsSlice.actions;
+
+export default notificationsSlice.reducer;

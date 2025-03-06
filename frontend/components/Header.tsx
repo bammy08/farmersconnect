@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { RootState } from '@/store/store';
 import { logout } from '@/store/slices/authSlice';
+import Notifications from './Notification';
 
 export default function Header() {
   const router = useRouter();
@@ -130,6 +131,8 @@ export default function Header() {
 
         {/* Right: User & Cart (Desktop) */}
         <div className="hidden md:flex items-center gap-6">
+          {isAuthenticated && <Notifications />}
+
           {isAuthenticated ? (
             // 🔹 User Profile Dropdown
             <div className="relative">

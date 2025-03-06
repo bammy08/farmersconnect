@@ -12,7 +12,7 @@ import searchRoutes from './routes/searchRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
-import http from 'http'; // Required for Socket.io
+import http from 'http';
 import { Server } from 'socket.io';
 
 dotenv.config();
@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
     io.emit('updateComments', commentData);
   });
 
-  // Handle notifications
+  // ✅ Handle notifications in real time
   socket.on('sendNotification', (notification) => {
     const { recipientId } = notification;
     const recipientSocket = onlineUsers.get(recipientId);
@@ -89,6 +89,7 @@ app.use(cookieParser());
 // Attach `io` to requests so controllers can use it
 app.use((req, res, next) => {
   req.io = io;
+  req.io.onlineUsers = onlineUsers; // ✅ Store online users in `req.io`
   next();
 });
 

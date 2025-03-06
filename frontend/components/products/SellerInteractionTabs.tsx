@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  MessageSquareText,
-  Phone,
-  MessageCircle,
-  Pencil,
-  Trash,
-} from 'lucide-react';
+import { Pencil, Trash, Reply } from 'lucide-react';
 import { AppDispatch, RootState } from '@/store/store';
 import {
   fetchComments,
@@ -17,28 +11,16 @@ import {
   deleteComment,
 } from '@/store/slices/commentSlice';
 
-interface SellerProfile {
-  phone?: string;
-}
-
-interface Seller {
-  sellerProfile?: SellerProfile | string | boolean;
-  _id: string;
-  name?: string;
-  email?: string;
-}
-
 interface Product {
   _id: string;
-  seller?: string | Seller;
 }
 
-interface SellerInteractionTabsProps {
+interface SellerInteractionProps {
   product: Product;
   userId: string;
 }
 
-const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
+const SellerInteraction: React.FC<SellerInteractionProps> = ({
   product,
   userId,
 }) => {
@@ -47,9 +29,6 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
     (state: RootState) => state.comments
   );
 
-  const [activeTab, setActiveTab] = useState<'comment' | 'call' | 'chat'>(
-    'comment'
-  );
   const [newComment, setNewComment] = useState('');
   const [editingComment, setEditingComment] = useState<{
     id: string;
@@ -60,8 +39,7 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    setToken(storedToken);
+    setToken(localStorage.getItem('token'));
   }, []);
 
   useEffect(() => {
@@ -71,20 +49,9 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
   }, [dispatch, product._id]);
 
   const handlePostComment = async (parentCommentId?: string) => {
-    if (!userId) {
-      console.error('Error: userId is missing!');
-      return;
-    }
+    if (!userId || !token) return;
 
-    console.log('Sending comment data:', {
-      productId: product._id,
-      userId,
-      content: parentCommentId ? replyText : newComment,
-      parentCommentId,
-      token,
-    });
-
-    if ((newComment.trim() || replyText.trim()) && product._id && token) {
+    if ((newComment.trim() || replyText.trim()) && product._id) {
       await dispatch(
         postComment({
           productId: product._id,
@@ -101,16 +68,15 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
   };
 
   const handleEditComment = async (commentId: string) => {
-    if (editingComment?.text.trim()) {
-      await dispatch(
-        editComment({
-          commentId,
-          content: editingComment.text,
-          token: token || '',
-        })
-      );
-      setEditingComment(null);
-    }
+    if (!editingComment || !editingComment.text.trim()) return; // Ensure it's not null
+    await dispatch(
+      editComment({
+        commentId,
+        content: editingComment.text,
+        token: token || '',
+      })
+    );
+    setEditingComment(null);
   };
 
   const handleDeleteComment = async (commentId: string) => {
@@ -118,172 +84,171 @@ const SellerInteractionTabs: React.FC<SellerInteractionTabsProps> = ({
   };
 
   return (
-    <div className="mt-10 p-2 rounded-lg">
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-4 bg-white">
-          {[
-            { id: 'comment', label: 'Leave Comment', icon: MessageSquareText },
-            { id: 'call', label: 'Call Seller', icon: Phone },
-            { id: 'chat', label: 'Chat', icon: MessageCircle },
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id as 'comment' | 'call' | 'chat')}
-              className={`py-2 px-4 border-b-2 font-medium flex items-center gap-2 ${
-                activeTab === id
-                  ? 'border-green-500 bg-green-400 text-white'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              {label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      <div className="pt-4">
-        {activeTab === 'comment' && (
-          <div className="space-y-4">
-            <textarea
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-              rows={4}
-              placeholder="Write your comment about the product..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-            />
+    <div className="mt-12 max-w-3xl mx-auto">
+      {/* Comment Input */}
+      <div className="space-y-4 mb-8">
+        <h2 className="text-2xl font-semibold text-gray-800">Discussion</h2>
+        <div className="bg-white rounded-lg shadow-sm">
+          <textarea
+            className="w-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent placeholder-gray-400 resize-none"
+            rows={4}
+            placeholder="Share your thoughts about this product..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+          />
+          <div className="flex justify-end p-2 bg-gray-50 rounded-b-lg">
             <button
               onClick={() => handlePostComment()}
-              className="bg-green-600 text-white px-6 py-2 rounded-lg"
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium transition-colors disabled:opacity-50"
               disabled={loading}
             >
               {loading ? 'Posting...' : 'Post Comment'}
             </button>
+          </div>
+        </div>
+      </div>
 
-            {/* Comments List */}
-            <div key={comments.length} className="mt-6">
-              <h3 className="text-lg font-semibold">Comments</h3>
-              {comments.map((comment, index) => {
-                console.log('Comment ID:', comment._id);
-                return (
-                  <div
-                    key={comment._id || `comment-${index}`}
-                    className="p-3 border rounded-lg bg-gray-100 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold">
-                        {comment.userId?.name ||
-                          (comment.userId?._id === userId
-                            ? 'You'
-                            : 'Anonymous')}
-                      </p>
+      {/* Comments List */}
+      <div className="space-y-6">
+        {comments.map((comment, index) => (
+          <div
+            key={comment._id || `comment-${index}`}
+            className="bg-white rounded-lg shadow-sm p-4"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-medium text-gray-900">
+                    {comment.userId?.name || 'Anonymous'}
+                  </span>
+                  {comment.userId?._id === userId && (
+                    <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
+                      You
+                    </span>
+                  )}
+                  <span className="text-sm text-gray-500">
+                    {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
 
-                      <span className="text-xs text-gray-500">
-                        {new Date(comment.createdAt).toLocaleString()}
-                      </span>
+                {editingComment?.id === comment._id ? (
+                  <div className="space-y-2">
+                    <textarea
+                      className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500"
+                      rows={3}
+                      value={editingComment?.text || ''}
+                      onChange={(e) =>
+                        setEditingComment({
+                          id: comment._id,
+                          text: e.target.value,
+                        })
+                      }
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditComment(comment._id)}
+                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                      >
+                        Save changes
+                      </button>
+                      <button
+                        onClick={() => setEditingComment(null)}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                    <p>{comment.content}</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-700">{comment.content}</p>
+                )}
+              </div>
 
-                    {comment.userId?._id === userId && (
-                      <div className="flex gap-2">
-                        {editingComment?.id === comment._id ? (
-                          editingComment ? ( // ✅ Ensure editingComment is not null before rendering
-                            <div>
-                              <textarea
-                                className="w-full p-2 border rounded"
-                                rows={2}
-                                value={editingComment.text}
-                                onChange={(e) =>
-                                  setEditingComment({
-                                    id: comment._id,
-                                    text: e.target.value,
-                                  })
-                                }
-                              />
-                              <div className="flex gap-2 mt-2">
-                                <button
-                                  onClick={() => handleEditComment(comment._id)}
-                                  className="bg-blue-500 text-white px-4 py-1 rounded"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={() => setEditingComment(null)}
-                                  className="bg-gray-400 text-white px-4 py-1 rounded"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : null
-                        ) : (
-                          <button
-                            onClick={() =>
-                              setEditingComment({
-                                id: comment._id,
-                                text: comment.content,
-                              })
-                            }
-                          >
-                            <Pencil />
-                          </button>
-                        )}
+              {comment.userId?._id === userId && !editingComment && (
+                <div className="flex gap-3 ml-4">
+                  <button
+                    onClick={() =>
+                      setEditingComment({
+                        id: comment._id,
+                        text: comment.content,
+                      })
+                    }
+                    className="text-gray-400 hover:text-green-600 transition-colors"
+                  >
+                    <Pencil className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteComment(comment._id)}
+                    className="text-gray-400 hover:text-red-600 transition-colors"
+                  >
+                    <Trash className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </div>
 
-                        <button
-                          onClick={() => handleDeleteComment(comment._id)}
-                        >
-                          <Trash />
-                        </button>
-                      </div>
-                    )}
-                    <button onClick={() => setReplyingTo({ id: comment._id })}>
-                      Reply
+            {/* Reply Section */}
+            <div className="mt-4 ml-4 pl-4 border-l-2 border-gray-100">
+              <button
+                onClick={() => setReplyingTo({ id: comment._id })}
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-green-600 mt-2"
+              >
+                <Reply className="w-4 h-4" />
+                Reply
+              </button>
+
+              {replyingTo?.id === comment._id && (
+                <div className="mt-3 space-y-2">
+                  <textarea
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500"
+                    rows={2}
+                    placeholder="Write your reply..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePostComment(comment._id)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                    >
+                      Post reply
                     </button>
+                    <button
+                      onClick={() => setReplyingTo(null)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
-                    {/* Reply Input */}
-                    {replyingTo?.id === comment._id && (
-                      <div className="mt-2 ml-4">
-                        <textarea
-                          className="w-full p-2 border rounded"
-                          rows={2}
-                          placeholder="Write a reply..."
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                        />
-                        <button
-                          onClick={() => handlePostComment(comment._id)}
-                          className="mt-1 bg-blue-500 text-white px-4 py-1 rounded"
-                        >
-                          Reply
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Display Replies */}
-                    {comment.replies && comment.replies.length > 0 && (
-                      <div className="mt-2 pl-4 border-l border-gray-300">
-                        <h4 className="text-sm font-semibold">Replies</h4>
-                        {comment.replies.map((reply, i) => (
-                          <div
-                            key={reply._id || `reply-${i}`}
-                            className="p-2 border rounded-lg bg-gray-50 mt-2"
-                          >
-                            <p>{reply.content}</p>
-                          </div>
-                        ))}
-                      </div>
+              {/* Replies */}
+              {comment.replies?.map((reply) => (
+                <div key={reply._id} className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {reply.userId?.name || 'Anonymous'}
+                    </span>
+                    {reply.userId?._id === userId && (
+                      <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
+                        You
+                      </span>
                     )}
                   </div>
-                );
-              })}
+                  <p className="text-sm text-gray-700">{reply.content}</p>
+                </div>
+              ))}
             </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
 };
 
-export default SellerInteractionTabs;
+export default SellerInteraction;
