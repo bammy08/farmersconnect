@@ -61,3 +61,31 @@ export const sendResetPasswordEmail = async (email, resetToken) => {
     return false;
   }
 };
+
+export const sendNotificationEmail = async (email, message) => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: email,
+    subject: 'New Notification',
+    html: `<p>You have a new notification:</p>
+           <p><strong>${message}</strong></p>
+           <p><a href="http://localhost:3000/notifications">View Notifications</a></p>`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Email notification sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Error sending notification email:', error);
+    return false;
+  }
+};

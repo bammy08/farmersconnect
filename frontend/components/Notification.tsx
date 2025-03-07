@@ -1,20 +1,22 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
 import { AppDispatch, RootState } from '@/store/store';
 import {
+  addNotification,
   fetchNotifications,
   markAsRead,
 } from '@/store/slices/notificationSlice';
-import { Bell } from 'lucide-react'; // Notification icon
+import { Bell, Loader2, CheckCircle } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 const socket = io(
   process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000'
-); // Your backend Socket.io server
+);
 
 const Notifications = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -25,23 +27,39 @@ const Notifications = () => {
     (state: RootState) => state.notification
   );
 
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
       dispatch(fetchNotifications(storedToken));
-
-      // Join the socket room for the logged-in user
       socket.emit('joinRoom', storedToken);
     }
   }, [dispatch]);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     if (!token) return;
 
-    // Listen for real-time notifications
     socket.on('newNotification', (newNotification) => {
-      dispatch(fetchNotifications(token)); // Fetch updated notifications
+      dispatch(addNotification(newNotification)); // ✅ GOOD: Adds notification in real-time
     });
 
     return () => {
@@ -59,45 +77,67 @@ const Notifications = () => {
 
   return (
     <div className="relative">
-      {/* Bell Icon with Unread Count */}
       <button
+        ref={buttonRef}
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="relative"
+        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
       >
-        <Bell size={24} className="text-gray-200" />
+        <Bell className="w-5 h-5 text-gray-300" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-medium rounded-full w-4 h-4 flex items-center justify-center">
             {unreadCount}
           </span>
         )}
       </button>
 
-      {/* Notification Dropdown */}
       {dropdownOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-lg p-2 z-50">
-          {loading ? (
-            <p className="text-center text-gray-500">Loading...</p>
-          ) : notifications.length === 0 ? (
-            <p className="text-center text-gray-500">No new notifications</p>
-          ) : (
-            <ul className="divide-y divide-gray-200">
-              {notifications.map((notif) => (
-                <li
-                  key={notif._id}
-                  className={`p-2 ${
-                    notif.seen ? 'text-gray-500' : 'text-black font-semibold'
-                  }`}
-                >
-                  <button
+        <div
+          ref={dropdownRef}
+          className="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-xl border border-gray-100 z-50"
+        >
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900">Notifications</h3>
+          </div>
+
+          <div className="max-h-96 overflow-y-auto">
+            {loading ? (
+              <div className="p-6 flex flex-col items-center justify-center gap-2 text-gray-500">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <p>Loading notifications</p>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-6 flex flex-col items-center justify-center gap-2 text-gray-500">
+                <CheckCircle className="w-6 h-6" />
+                <p>All caught up!</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {notifications.map((notif) => (
+                  <li
+                    key={notif._id}
+                    className={cn(
+                      'px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer',
+                      notif.seen ? 'bg-white' : 'bg-blue-50/50' // ✅ Change color when 'seen' is true
+                    )}
                     onClick={() => handleMarkAsRead(notif._id)}
-                    className="block w-full text-left"
                   >
-                    {notif.message}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                    <div className="flex items-start gap-3">
+                      {!notif.seen && (
+                        <span className="mt-1.5 w-2 h-2 bg-blue-500 rounded-full shrink-0" />
+                      )}
+                      <p className="text-sm text-gray-700">{notif.message}</p>
+                      <span className="text-xs text-gray-400 ml-auto shrink-0">
+                        {new Date(notif.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
     </div>

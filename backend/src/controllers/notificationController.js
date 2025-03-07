@@ -1,4 +1,5 @@
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 
 /**
  * Get notifications for the logged-in user
@@ -35,15 +36,33 @@ export const createNotification = async (req, res) => {
 
     await notification.save();
 
-    // ✅ Emit real-time notification
+    // ✅ Emit real-time notification (for online users)
     const recipientSocket = req.io?.onlineUsers?.get(recipient);
     if (recipientSocket) {
       req.io.to(recipientSocket).emit('receiveNotification', notification);
+      console.log(`📢 Real-time notification sent to ${recipient}`);
+    } else {
+      // 🔥 Check user email preferences before sending an email
+      const user = await User.findById(recipient);
+      if (user?.email && user?.emailNotifications) {
+        console.log(
+          `📧 Sending email to ${user.email} with message: "${message}"`
+        );
+        const emailSent = await sendNotificationEmail(user.email, message);
+
+        if (emailSent) {
+          console.log('✅ Email sent successfully');
+        } else {
+          console.log('❌ Failed to send email');
+        }
+      } else {
+        console.log(`❌ User ${recipient} has email notifications disabled`);
+      }
     }
 
     return res.status(201).json(notification);
   } catch (error) {
-    console.error('Create Notification Error:', error);
+    console.error('❌ Create Notification Error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
@@ -74,7 +93,7 @@ export const markNotificationAsRead = async (req, res) => {
 
     const notification = await Notification.findOneAndUpdate(
       { _id: id, recipient: req.user.id },
-      { read: true },
+      { seen: true },
       { new: true }
     );
 

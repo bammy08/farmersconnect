@@ -94,12 +94,12 @@ export const notificationsSlice = createSlice({
       .addCase(markAllAsSeen.fulfilled, (state) => {
         state.notifications = state.notifications.map((n) => ({
           ...n,
-          isRead: true,
+          seen: true,
         }));
       })
       .addCase(markAsRead.fulfilled, (state, action) => {
         state.notifications = state.notifications.map((n) =>
-          n._id === action.payload ? { ...n, isRead: true } : n
+          n._id === action.payload ? { ...n, seen: true } : n
         );
       });
   },
