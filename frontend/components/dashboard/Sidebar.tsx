@@ -11,6 +11,7 @@ import {
   LogOut,
   ChevronLeft,
   ChartColumnStacked,
+  MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname, useRouter } from 'next/navigation';
@@ -64,6 +65,11 @@ export default function Sidebar() {
         label: 'Products',
       },
       { href: '/dashboard/seller/customers', icon: Users, label: 'Customers' },
+      {
+        href: '/dashboard/seller/messages',
+        icon: MessageCircle,
+        label: 'Messages',
+      },
       { href: '/dashboard/seller/settings', icon: Settings, label: 'Settings' },
     ],
     user: [

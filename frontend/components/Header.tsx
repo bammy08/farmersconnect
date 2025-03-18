@@ -92,7 +92,7 @@ export default function Header() {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-white hover:bg-green-700"
-                      onClick={() => router.push('/messages')}
+                      onClick={() => router.push('/dashboard/seller/messages')}
                     >
                       <MessageSquare className="w-5 h-5 mr-2" />
                       Messages
@@ -176,7 +176,7 @@ export default function Header() {
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-gray-800 hover:bg-gray-100"
-                    onClick={() => router.push('/messages')}
+                    onClick={() => router.push('/dashboard/seller/messages')}
                   >
                     <MessageSquare className="w-5 h-5 mr-2" />
                     Messages
@@ -185,7 +185,9 @@ export default function Header() {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-gray-800 hover:bg-gray-100"
-                      onClick={() => router.push('/seller/my-adverts')}
+                      onClick={() =>
+                        router.push('/dashboard/seller/my-adverts')
+                      }
                     >
                       <Plus className="w-5 h-5 mr-2" />
                       My Adverts
@@ -194,7 +196,7 @@ export default function Header() {
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-gray-800 hover:bg-gray-100"
-                    onClick={() => router.push('/settings')}
+                    onClick={() => router.push('/dashboard/seller/settings')}
                   >
                     <Settings className="w-5 h-5 mr-2" />
                     Settings

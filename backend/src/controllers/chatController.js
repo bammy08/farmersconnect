@@ -1,5 +1,6 @@
 import Chat from '../models/Chat.js';
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 
 /**
  * Send a chat message between users
@@ -7,7 +8,7 @@ import Notification from '../models/Notification.js';
 export const sendChatMessage = async (req, res) => {
   try {
     const { receiver, content } = req.body;
-    const sender = req.user.id; // Authenticated user
+    const senderId = req.user.id; // Authenticated user
 
     if (!receiver || !content) {
       return res
@@ -15,15 +16,27 @@ export const sendChatMessage = async (req, res) => {
         .json({ message: 'Receiver and content are required' });
     }
 
-    // Create a new chat message
-    const chat = await Chat.create({ sender, receiver, content });
+    // Get sender's name
+    const senderUser = await User.findById(senderId);
+    if (!senderUser) {
+      return res.status(404).json({ message: 'Sender not found' });
+    }
+
+    // Create a new chat message with timestamp
+    const chat = await Chat.create({
+      sender: senderId,
+      senderName: senderUser.name, // ✅ Add sender's name
+      receiver,
+      content,
+      createdAt: new Date(), // ✅ Ensure timestamp
+    });
 
     // Create a notification for the receiver
     await Notification.create({
       recipient: receiver,
-      sender,
+      sender: senderId,
       type: 'chat',
-      message: `New message from ${req.user.name}`,
+      message: `New message from ${senderUser.name}`,
     });
 
     // Emit real-time event (Socket.io)
@@ -37,19 +50,17 @@ export const sendChatMessage = async (req, res) => {
 };
 
 /**
- * Get chat history between two users
+ * Get chat history between two users (populating sender's name)
  */
 export const getChatHistory = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const currentUser = req.user.id;
-
+    const { userId } = req.params; // Seller's ID
     const chats = await Chat.find({
-      $or: [
-        { sender: currentUser, receiver: userId },
-        { sender: userId, receiver: currentUser },
-      ],
-    }).sort({ createdAt: 1 });
+      $or: [{ sender: userId }, { receiver: userId }],
+    })
+      .sort({ createdAt: 1 })
+      .populate('sender', 'name email') // ✅ Fetch sender's name
+      .populate('receiver', 'name email'); // ✅ Fetch receiver's name (optional)
 
     return res.json(chats);
   } catch (error) {

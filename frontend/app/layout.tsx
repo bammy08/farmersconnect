@@ -5,6 +5,7 @@ import { Providers } from '@/store/provider';
 import { Toaster } from '@/components/ui/sonner';
 import MainLayout from '@/layouts/MainLayout';
 import NotificationProvider from './providers/NotificationProvider';
+import { ChatProvider } from './providers/ChatProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -33,9 +34,9 @@ export default function RootLayout({
       >
         <Providers>
           <NotificationProvider>
-            {' '}
-            {/* ✅ Wrap with NotificationProvider */}
-            <MainLayout>{children}</MainLayout>
+            <ChatProvider>
+              <MainLayout>{children}</MainLayout>
+            </ChatProvider>
           </NotificationProvider>
         </Providers>
         <Toaster />

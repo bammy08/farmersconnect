@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById } from '@/store/slices/productSlice';
@@ -17,6 +17,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import SellerInteractionTabs from '@/components/products/SellerInteractionTabs';
+import Chat from '@/components/Chat';
 
 // TypeScript interfaces
 interface BulkPricing {
@@ -59,6 +60,7 @@ interface Product {
 }
 
 const ProductDetail = () => {
+  const router = useRouter();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'comment' | 'call' | 'chat'>(
     'comment'
@@ -262,6 +264,22 @@ const ProductDetail = () => {
                   </div>
                 </div>
               )}
+            <div>
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
+                onClick={() =>
+                  router.push(
+                    `/chat?seller=${
+                      (typeof product.seller === 'object'
+                        ? product.seller._id
+                        : product.seller) || ''
+                    }`
+                  )
+                }
+              >
+                Chat with Seller
+              </button>
+            </div>
           </div>
         </div>
       </div>
